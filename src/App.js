@@ -1,43 +1,84 @@
 import "./App.css";
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import * as THREE from "three";
-import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls, Sphere, useTexture, Text,Environment } from "@react-three/drei";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import {
+  OrbitControls,
+  Sphere,
+  useTexture,
+  Text,
+  Environment,
+  useEnvironment,
+} from "@react-three/drei";
 import test from "./texture/test.jpg";
-function Sph() {
-  const texture = useTexture(test);
-  const radius = 5;
+import sky from "./hdr/test.hdr";
+import { useControls } from "leva";
+function Texts() {
+  const { x, z, y, fontSize, color, rotationX, rotationY } = useControls({
+    x: { value: 0, min: -10, max: 10 },
+    y: { value: 0, min: -10, max: 10 },
+    fontSize: { value: 3, min: 0.1, max: 3 },
+    color: "#ffffff",
+    rotationX: { value: Math.PI / 4, min: -Math.PI, max: Math.PI },
+    rotationY: { value: Math.PI / 3, min: -Math.PI, max: Math.PI },
+  });
+
+  const radius = 50;
   return (
-    <Sphere args={[radius, 32, 32]}>
-      <meshStandardMaterial map={texture} side={THREE.BackSide} />
-      {
-        ['Texte 1', 'Texte 2', 'Texte 3', 'Texte 4', 'Texte 5', 'Texte 6'].map((text, index) => {
+    <>
+      {["Texte 1", "Texte 2", "Texte 3", "Texte 4", "Texte 5", "Texte 6"].map(
+        (text, index) => {
           const angle = ((index * 60) / 180) * Math.PI;
           const x = radius * Math.cos(angle);
           const z = radius * Math.sin(angle);
-  
+
           return (
             <Text
-            position={[x, 0, z]}
-            fontSize={0.3}
-            color="white"
-            anchorX="center"
-            anchorY="middle"
-            rotation={[Math.PI/4, Math.PI/3, 0]}
-          >
-            {text}
-          </Text>
+              position={[x, 10, z]}
+              fontSize={fontSize}
+              color="white"
+              anchorX="center"
+              anchorY="middle"
+              rotation={[rotationX, rotationY, 0]}
+            >
+              {text}
+            </Text>
           );
-        })
-      }
-    </Sphere>
+        }
+      )}
+    </>
+  );
+}
+function ThreeScene({step}) {
+  const textControl = useControls({});
+  const orbitControlRef = useRef();
+  useFrame((state) => {
+    if (step != -1) {
+      state.camera.rotateY(((step * 60) / 180) * Math.PI)
+    }
+  });
+  return (
+    <>
+      <pointLight position={[5, 5, 5]} intensity={2} />
+      <ambientLight intensity={1.4} />
+      <OrbitControls ref={orbitControlRef} />
+      <Texts />
+      <Environment files={sky} background />
+    </>
   );
 }
 function App() {
+  const [step, setStep] = useState(-1);
+  const RotateCamera = () => {
+    setStep((i)=>i=(i+1)%6);
+  };
   return (
     <div className="App">
-      <div>
-        left side bar
+      <div
+        style={{ position: "absolute", zIndex: 222, background: "red" , padding:2}}
+        onClick={() => RotateCamera()}
+      >
+        step{step}
       </div>
       <Canvas
         style={{
@@ -47,14 +88,14 @@ function App() {
           height: "100vh",
           width: "100vw",
         }}
-        camera={{ position: [1, 0, 0] ,fov: (window.innerHeight * 65) / 935,far:10000,near:0.1}}
+        camera={{
+          position: [2, 0, 0],
+          fov: (window.innerHeight * 65) / 935,
+          far: 10000,
+          near: 0.1,
+        }}
       >
-        <pointLight position={[5, 5, 5]} intensity={9} />
-        <ambientLight intensity={1.4} />
-        <OrbitControls 
-        />
-        <Sph />
-        {/* <Environment files="./hdr/test.hdr" background /> */}
+        <ThreeScene step={step} />
       </Canvas>
     </div>
   );
